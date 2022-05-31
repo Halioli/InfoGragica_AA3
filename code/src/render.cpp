@@ -241,7 +241,7 @@ namespace Framebuffer
 namespace Object
 {
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
-	Shader camaroShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", false);
+	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", false);
 
 	Model framebufferCubeModel("newCube.obj");
 	Model camaroModel("Camaro.obj");

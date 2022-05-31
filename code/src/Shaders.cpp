@@ -149,13 +149,13 @@ void Shader::GenerateTexture()
 void Shader::ActivateTexture()
 {
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
 }
 
 void Shader::ActivateCubemapTexture()
 {
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 }
 
 void Shader::ActivateTexture(int newTex)
@@ -168,6 +168,7 @@ void Shader::GenerateFramebufferTexture()
 {
     // Setup FBO texture
     glGenFramebuffers(1, &fbo);
+    
     // Create texture exactly as before:
     glGenTextures(1, &fbo_tex);
     glBindTexture(GL_TEXTURE_2D, fbo_tex);
@@ -176,10 +177,32 @@ void Shader::GenerateFramebufferTexture()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    
     // If we need a depth or stencil buffer, we do it here
     // We bind texture (or renderbuffer) to framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_tex, 0);
+    // If we had depth or stencil, we would do it here.
+}
+
+void Shader::GenerateFramebufferCubemapTexture()
+{
+    // Setup FBO texture
+    glGenFramebuffers(1, &fbo);
+    
+    // Create texture exactly as before:
+    glGenTextures(1, &fbo_tex);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, fbo_tex);
+    glTexImage2D(GL_TEXTURE_CUBE_MAP, 0, GL_RGB, 800, 800, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    
+    // If we need a depth or stencil buffer, we do it here
+    // We bind texture (or renderbuffer) to framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP, fbo_tex, 0);
     // If we had depth or stencil, we would do it here.
 }
 

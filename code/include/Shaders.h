@@ -25,11 +25,13 @@ public:
 	GLuint GetProgram();
 
 	void GenerateTexture();
+
 	void ActivateTexture();
 	void ActivateCubemapTexture();
-
 	void ActivateTexture(int newTex);
+
 	void GenerateFramebufferTexture();
+	void GenerateFramebufferCubemapTexture();
 
 	GLuint GetUniformLocation(char* uniformName);
 	void SetUniformInt(char* uniformName, int value);
