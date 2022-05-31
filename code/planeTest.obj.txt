@@ -1,0 +1,25 @@
+# 3ds Max Wavefront OBJ Exporter v0.99 - (c)2007 guruware
+# File Created: 10.05.2022 20:22:14
+
+mtllib planeTest.mtl
+
+#
+# object PlaneTest
+#
+
+v  0.0000 0.0000 0.0000
+# 1 vertices
+
+vn 0.0000 0.0000 1.0000
+# 1 vertex normals
+
+vt 0.0000 0.0000 0.0000
+# 1 texture coords
+
+o PlaneTest
+g PlaneTest
+usemtl wire_027177027
+s 2
+f 1/1/1 1/1/1 1/1/1
+# 1 polygons
+
