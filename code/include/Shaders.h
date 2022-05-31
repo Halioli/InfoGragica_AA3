@@ -26,6 +26,7 @@ public:
 
 	void GenerateTexture();
 	void ActivateTexture();
+	void ActivateCubemapTexture();
 
 	void ActivateTexture(int newTex);
 	void GenerateFramebufferTexture();
