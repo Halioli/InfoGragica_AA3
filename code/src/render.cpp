@@ -187,6 +187,14 @@ namespace Framebuffer
 		model.SetUniforms(shader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 		model.DrawArraysTriangles();
 
+		shader3.UseProgram();
+		model3.BindVertex();
+		shader3.ActivateTexture();
+		model3.SetObjMat(objMat);
+		model3.SetScale(glm::vec3(0.05f));
+		model3.SetUniforms(shader3, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		model3.DrawArraysTriangles();
+
 		// We restore the previous conditions
 		RenderVars::_MVP = t_mvp;
 		RenderVars::_modelView = t_mv;
@@ -232,63 +240,26 @@ namespace Framebuffer
 ////////////////////////////////////////////////// OBJECT
 namespace Object
 {
-	Shader billboardShader("object_vertexShader.vs", "object_fragmentShader.fs", "object_geometryShader.gs", "tnt.png", true);
-	Shader cubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
-	Shader cubeBorderShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
-	Shader explodingShader("exploding_vertexShader.vs", "exploding_fragmentShader.fs", "exploding_geometryShader.gs", "tnt.png", true);
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
+	Shader camaroShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", false);
 
-	Model billboardModel("planeTest.obj");
-	Model cubeModel("newCube.obj");
-	Model explodingModel("newCube.obj");
 	Model framebufferCubeModel("newCube.obj");
-
-	// this should be at the fragment shader
-	struct Material {
-		glm::vec3 ambient = glm::vec3(1.f, 0.5f, 0.31f);
-		glm::vec3 diffuse = glm::vec3(1.f, 0.5f, 0.31f);
-		glm::vec3 specular = glm::vec3(0.5f, 0.5f, 0.5f);
-		float shininess = 32.f;
-	};
-	Material material;
-
-	struct Light
-	{
-		glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
-		glm::vec3 direction = glm::vec3(0.f, 0.f, 0.f);
-		glm::vec3 ambient = glm::vec3(0.6f, 0.6f, 0.6f);
-		glm::vec3 diffuse;
-		glm::vec3 specular;
-
-		float constant = 1.f;
-		float linear = 0.09f;
-		float quadratic = 0.032f;
-
-		float cutOff = glm::cos(glm::radians(12.5f));
-	};
-	Light light;
+	Model camaroModel("Camaro.obj");
 
 	void setup()
 	{
+		//Framebuffer::SetupFBO();
 		//Inicialitzar el Shader 
-		billboardShader.CreateAllShaders();
-		cubeShader.CreateAllShaders();
-		cubeBorderShader.CreateAllShaders();
-		explodingShader.CreateAllShaders();
 		framebufferCubeShader.CreateAllShaders();
+		camaroShader.CreateAllShaders();
 
 		//Create the vertex array object
-		billboardModel.CreateVertexArrayObject();
-		cubeModel.CreateVertexArrayObject();
-		explodingModel.CreateVertexArrayObject();
 		framebufferCubeModel.CreateVertexArrayObject();
+		camaroModel.CreateVertexArrayObject();
 
 		// Texture
-		billboardShader.GenerateTexture();
-		cubeShader.GenerateTexture();
-		cubeBorderShader.GenerateTexture();
-		explodingShader.GenerateTexture();
 		framebufferCubeShader.GenerateTexture();
+		camaroShader.GenerateTexture();
 
 		// Clean
 		glBindVertexArray(0);
@@ -296,74 +267,99 @@ namespace Object
 
 	void cleanup()
 	{
-		billboardShader.DeleteProgram();
-		cubeShader.DeleteProgram();
-		cubeBorderShader.DeleteProgram();
-		explodingShader.DeleteProgram();
 		framebufferCubeShader.DeleteProgram();
+		camaroShader.DeleteProgram();
 
-		billboardModel.Cleanup();
-		cubeModel.Cleanup();
-		explodingModel.Cleanup();
 		framebufferCubeModel.Cleanup();
+		camaroModel.Cleanup();
+	}
+
+	void DrawCubeFBOTex(glm::vec4 fragColor)
+	{
+		// We store the current values in a temporary variable
+		glm::mat4 t_mvp = RenderVars::_MVP;
+		glm::mat4 t_mv = RenderVars::_modelView;
+		// We set up our framebuffer and draw into it
+		glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer::fbo);
+		glClearColor(1.f, 1.f, 1.f, 1.f);
+		glViewport(0, 0, 800, 800);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+		RenderVars::_MVP = RenderVars::_projection;
+		RenderVars::_modelView = glm::mat4(1.f);
+		// Everything you want to draw in your texture should go here
+		glm::mat4 objMat = glm::lookAt(glm::vec3(0.f, 1.5f, 3.5f), glm::vec3(0.f, 1.5f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+		//Object::draw2Cubes();
+
+		// == FRAMEBUFFER CUBE ==
+		framebufferCubeShader.UseProgram();
+		framebufferCubeModel.BindVertex();
+
+		framebufferCubeShader.ActivateTexture();
+
+		framebufferCubeModel.SetObjMat(objMat);
+		framebufferCubeModel.SetScale(glm::vec3(0.2f));
+		framebufferCubeModel.SetUniforms(framebufferCubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
+		framebufferCubeModel.DrawArraysTriangles();
+		// == == 
+
+		// == CAMARO ==
+		camaroShader.UseProgram();
+		camaroModel.BindVertex();
+
+		camaroShader.ActivateTexture();
+
+		camaroModel.SetObjMat(objMat);
+		camaroModel.SetScale(glm::vec3(0.05f));
+		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
+		camaroModel.DrawArraysTriangles();
+		// == ==
+
+		// We restore the previous conditions
+		RenderVars::_MVP = t_mvp;
+		RenderVars::_modelView = t_mv;
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		// We set up a texture where to draw our FBO:
+		glViewport(0, 0, 800, 800); //camWidth, camHeight);
+		glBindTexture(GL_TEXTURE_2D, Framebuffer::fbo_tex);
+		glm::vec3 c1_pos = glm::vec3(-10.f, 0.f, 0.f);
+		//drawCubeAt(c1_pos, glm::vec3(1.0f, 0.2f, 1.f), 0.5f, cubeProgramWithTexture);
+
+		// == FRAMEBUFFER CUBE ==
+		framebufferCubeShader.UseProgram();
+		framebufferCubeModel.BindVertex();
+
+		// Texture
+		framebufferCubeShader.ActivateTexture();
+
+		framebufferCubeModel.SetLocation(glm::vec3(10.f, 0.f, -10.f));
+		framebufferCubeModel.SetScale(glm::vec3(0.2f));
+		framebufferCubeModel.SetUniforms(framebufferCubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
+		framebufferCubeModel.DrawArraysTriangles();
+		// ==
+
+		// == CAMARO ==
+		camaroShader.UseProgram();
+		camaroModel.BindVertex();
+
+		camaroShader.ActivateTexture();
+
+		camaroModel.SetScale(glm::vec3(0.05f));
+		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
+		camaroModel.DrawArraysTriangles();
+		// == ==
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 	void render()
 	{
-		// == THIS NEEDS TO BE AT THE FRAGMENT SHADER == //
 		glm::vec4 fragColor;
-		/*glm::vec3 lightColor = {9.f, 9.f, 9.f};
-		glm::vec3 objectColor = { 9.f, 9.f, 9.f };
-		glm::vec3 result;
-
-		glm::vec3 fragPos;
-		GLint fragPosUniformLocation = shader.GetUniformLocation("FragPos");
-		glUniform3fv(fragPosUniformLocation, 1, &fragPos[0]);
-
-		// Ambient Lighting
-		float ambientStrength = 0.6f;
-		glm::vec3 ambient = lightColor * material.ambient;
-		light.ambient = ambientStrength * lightColor;
-		//
-
-		// Diffuse Lighting
-		glm::vec3 norm = glm::normalize(objNormals[0]);
-		glm::vec3 lightDir = glm::normalize(-light.direction);
-		float diff = glm::max(glm::dot(norm, lightDir), 0.f);
-		light.diffuse = lightColor * (diff * material.diffuse); //diff * lightColor;
-		//
-
-		// Specular Lighting
-		float specularStrength = 0.5f;
-		glm::vec3 viewPos;
-		glm::vec3 viewDir = glm::normalize(viewPos - fragPos);
-		glm::vec3 reflectDir = glm::reflect(-lightDir, norm);
-		float spec = glm::pow(glm::max(glm::dot(viewDir, reflectDir), 0.f), material.shininess);
-		light.specular = specularStrength * (spec * material.specular);
-		//
-
-		// Point Light
-		float distance = glm::length(light.position - fragPos);
-		float attenuation = 1.f / (light.constant + light.linear *
-							distance + light.quadratic * (distance * distance));
-		light.ambient *= attenuation;
-		light.diffuse *= attenuation;
-		light.specular *= attenuation;
-		//
-
-		// Spot Light
-		float theta = glm::dot(lightDir, glm::normalize(-light.direction));
-
-		if (theta > light.cutOff)
-			result = (light.ambient + light.diffuse + light.specular) * objectColor;
-		else
-			result = light.ambient * objectColor;
-		//
-
-		fragColor = glm::vec4(result, 1.0f);
-		*/
 		fragColor = glm::vec4(5.f, 5.f, 5.f, 1.0f);
-		// == THIS NEEDS TO BE AT THE FRAGMENT SHADER == //
 		float time = ImGui::GetTime();
 
 		// Alpha blending
@@ -371,8 +367,8 @@ namespace Object
 		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		// == FRAMEBUFFER CUBE ==
-		framebufferCubeShader.GenerateFramebufferTexture();
-		Framebuffer::DrawCubeFBOTex(framebufferCubeShader, framebufferCubeModel, fragColor, cubeShader, cubeModel, explodingShader, explodingModel, time);
+		//framebufferCubeShader.GenerateFramebufferTexture();
+		//DrawCubeFBOTex(fragColor);
 
 		framebufferCubeShader.UseProgram();
 		framebufferCubeModel.BindVertex();
@@ -387,61 +383,17 @@ namespace Object
 		framebufferCubeModel.DrawArraysTriangles();
 		// ==
 		
-		// == BILLBOARD ==
-		billboardShader.UseProgram();
-		billboardModel.BindVertex();
-		
-		// Texture
-		billboardShader.ActivateTexture();
+		// == CAMARO ==
+		camaroShader.UseProgram();
+		camaroModel.BindVertex();
 
-		billboardModel.SetUniforms(billboardShader, RenderVars::_modelView, RenderVars::_MVP, RenderVars::_cameraPoint, fragColor);
-		
-		billboardModel.DrawArraysPoints();
-		// == ==
+		camaroShader.ActivateTexture();
 
-		// == CUBE ==
-		glEnable(GL_STENCIL_TEST);
-		glClear(GL_STENCIL_BUFFER_BIT);
-		glStencilFunc(GL_ALWAYS, 1, 0xff);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-		glStencilMask(0xff);
+		camaroModel.SetLocation(glm::vec3(0.f, -3.f, 0.f));
+		camaroModel.SetScale(glm::vec3(0.05f));
+		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
-		cubeShader.UseProgram();
-		cubeModel.BindVertex();
-
-		// Texture
-		cubeShader.ActivateTexture();
-
-		cubeModel.SetScale(glm::vec3(0.3f));
-		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		
-		cubeModel.DrawArraysTriangles();
-
-		glStencilFunc(GL_GREATER, 1, 0xff);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-		cubeBorderShader.UseProgram();
-		cubeModel.BindVertex();
-		cubeBorderShader.ActivateTexture();
-		cubeModel.SetScale(glm::vec3(0.35f));
-		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		cubeModel.DrawArraysTriangles();
-
-		glDisable(GL_STENCIL_TEST);
-		// == ==
-
-		// == EXPLODING ==
-		explodingShader.UseProgram();
-		explodingModel.BindVertex();
-
-		// Texture
-		explodingShader.ActivateTexture();
-		
-		explodingModel.SetLocation(glm::vec3(0.f, 0.f, -30.f));
-		explodingModel.SetScale(glm::vec3(0.8f));
-		explodingModel.SetUniforms(explodingShader, RenderVars::_modelView, RenderVars::_MVP, time, fragColor);
-		
-		explodingModel.DrawArraysTriangles();
+		camaroModel.DrawArraysTriangles();
 		// == ==
 
 		glBindVertexArray(0);
