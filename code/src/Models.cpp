@@ -69,7 +69,10 @@ void Model::SetLocation(glm::vec3 newLocation)
 
 void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec3 fragColor)
 {
-	objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
+	if (objMat == glm::mat4(1.f))
+		objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
+	else
+		objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
 
 	shader.SetUniformInt("diffuseTexture", 0);
 	shader.SetUniformMatrix4("objMat", objMat);

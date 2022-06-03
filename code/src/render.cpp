@@ -389,6 +389,7 @@ namespace Object
 
 		camaroShader.ActivateTexture();
 
+		camaroModel.SetObjMat(glm::translate(glm::mat4(), glm::vec3(1.0f, cos(time) * 2.0f + 2.0f, 2.0f)));
 		camaroModel.SetLocation(glm::vec3(0.f, -3.f, 0.f));
 		camaroModel.SetScale(glm::vec3(0.05f));
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
