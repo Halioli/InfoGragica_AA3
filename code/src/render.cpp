@@ -241,7 +241,7 @@ namespace Framebuffer
 namespace Object
 {
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
-	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", false);
+	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
 
 	Model framebufferCubeModel("newCube.obj");
 	Model camaroModel("Camaro.obj");
@@ -389,8 +389,7 @@ namespace Object
 
 		camaroShader.ActivateTexture();
 
-		camaroModel.SetObjMat(glm::translate(glm::mat4(), glm::vec3(1.0f, cos(time) * 2.0f + 2.0f, 2.0f)));
-		camaroModel.SetLocation(glm::vec3(0.f, -3.f, 0.f));
+		camaroModel.SetLocation(glm::vec3(cos(time) * 2.0f + 2.0f, 0.0f, 2.0f));
 		camaroModel.SetScale(glm::vec3(0.05f));
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 

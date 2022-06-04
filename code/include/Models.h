@@ -39,6 +39,7 @@ private:
 	std::vector<glm::vec3> objNormals;
 
 	glm::mat4 objMat;
+	glm::vec3 translate;
 	glm::vec3 scale;
 	glm::vec3 location;
 };
