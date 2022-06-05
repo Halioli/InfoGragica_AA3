@@ -20,8 +20,6 @@
 GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name = "");
 void linkProgram(GLuint program);
 
-float camWidth, camHeight;
-
 ///////// fw decl
 namespace ImGui 
 {
@@ -61,9 +59,6 @@ namespace RV = RenderVars;
 
 void GLResize(int width, int height) 
 {
-	camWidth = width;
-	camHeight = height;
-
 	glViewport(0, 0, width, height);
 	if (height != 0) RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 	else RV::_projection = glm::perspective(RV::FOV, 0.f, RV::zNear, RV::zFar);
@@ -147,6 +142,7 @@ namespace Framebuffer
 	{
 		// Setup FBO texture
 		glGenFramebuffers(1, &fbo);
+
 		// Create texture exactly as before:
 		glGenTextures(1, &fbo_tex);
 		glBindTexture(GL_TEXTURE_2D, fbo_tex);
@@ -155,84 +151,13 @@ namespace Framebuffer
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+		
 		// If we need a depth or stencil buffer, we do it here
 		// We bind texture (or renderbuffer) to framebuffer
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_tex, 0);
+		
 		// If we had depth or stencil, we would do it here.
-	}
-
-	void DrawCubeFBOTex(Shader shader, Model model, glm::vec4 fragColor, Shader shader2, Model model2, Shader shader3, Model model3, float time)
-	{
-		// We store the current values in a temporary variable
-		glm::mat4 t_mvp = RenderVars::_MVP;
-		glm::mat4 t_mv = RenderVars::_modelView;
-		// We set up our framebuffer and draw into it
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-		glClearColor(1.f, 1.f, 1.f, 1.f);
-		glViewport(0, 0, 800, 800);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);
-		RenderVars::_MVP = RenderVars::_projection;
-		RenderVars::_modelView = glm::mat4(1.f);
-		// Everything you want to draw in your texture should go here
-		glm::mat4 objMat = glm::lookAt(glm::vec3(0.f, 1.5f, 3.5f), glm::vec3(0.f, 1.5f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-		//Object::draw2Cubes();
-
-		shader.UseProgram();
-		model.BindVertex();
-		shader.ActivateTexture();
-		model.SetObjMat(objMat);
-		model.SetScale(glm::vec3(0.2f));
-		model.SetUniforms(shader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		model.DrawArraysTriangles();
-
-		shader3.UseProgram();
-		model3.BindVertex();
-		shader3.ActivateTexture();
-		model3.SetObjMat(objMat);
-		model3.SetScale(glm::vec3(0.05f));
-		model3.SetUniforms(shader3, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		model3.DrawArraysTriangles();
-
-		// We restore the previous conditions
-		RenderVars::_MVP = t_mvp;
-		RenderVars::_modelView = t_mv;
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		// We set up a texture where to draw our FBO:
-		glViewport(0, 0, 800, 800); //camWidth, camHeight);
-		glBindTexture(GL_TEXTURE_2D, fbo_tex);
-		glm::vec3 c1_pos = glm::vec3(-10.f, 0.f, 0.f);
-		//drawCubeAt(c1_pos, glm::vec3(1.0f, 0.2f, 1.f), 0.5f, cubeProgramWithTexture);
-
-		shader.UseProgram();
-		model.BindVertex();
-		shader.ActivateTexture(fbo_tex);
-		model.SetLocation(c1_pos);
-		model.SetScale(glm::vec3(0.2f));
-		model.SetUniforms(shader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		model.DrawArraysTriangles();
-
-		// == CUBE ==
-		shader2.UseProgram();
-		model2.BindVertex();
-		shader2.ActivateTexture();
-		model2.SetScale(glm::vec3(0.3f));
-		model2.SetUniforms(shader2, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		model2.DrawArraysTriangles();
-		// == ==
-
-		// == EXPLODING ==
-		shader3.UseProgram();
-		model3.BindVertex();
-		shader3.ActivateTexture();
-		model3.SetLocation(glm::vec3(0.f, 0.f, -30.f));
-		model3.SetScale(glm::vec3(0.8f));
-		model3.SetUniforms(shader3, RenderVars::_modelView, RenderVars::_MVP, time, fragColor);
-		model3.DrawArraysTriangles();
-		// == ==
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	// == FRAMEBUFFER ==
 }
@@ -243,12 +168,12 @@ namespace Object
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
 	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
-	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
+	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
 
 	Model framebufferCubeModel("newCube.obj");
 	Model floorModel("groundPlane.obj");
 	Model camaroModel("Camaro.obj");
-	Model mirrorPlaneModel("planeTest.obj");
+	Model mirrorPlaneModel("basicPlane.obj");
 
 	glm::vec3 prevCamaroPos;
 	glm::vec3 currCamaroPos;
@@ -293,7 +218,7 @@ namespace Object
 		mirrorPlaneModel.Cleanup();
 	}
 
-	void DrawCubeFBOTex(glm::vec4 fragColor)
+	void DrawCubeFBOTex(glm::vec4 fragColor, float time)
 	{
 		// We store the current values in a temporary variable
 		glm::mat4 t_mvp = RenderVars::_MVP;
@@ -308,33 +233,8 @@ namespace Object
 		RenderVars::_modelView = glm::mat4(1.f);
 		// Everything you want to draw in your texture should go here
 		glm::mat4 objMat = glm::lookAt(glm::vec3(0.f, 1.5f, 3.5f), glm::vec3(0.f, 1.5f, 0.f), glm::vec3(0.f, 1.f, 0.f));
-		//Object::draw2Cubes();
 
-		// == FRAMEBUFFER CUBE ==
-		framebufferCubeShader.UseProgram();
-		framebufferCubeModel.BindVertex();
-
-		framebufferCubeShader.ActivateTexture();
-
-		framebufferCubeModel.SetObjMat(objMat);
-		framebufferCubeModel.SetScale(glm::vec3(0.2f));
-		framebufferCubeModel.SetUniforms(framebufferCubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
-		framebufferCubeModel.DrawArraysTriangles();
-		// == == 
-
-		// == CAMARO ==
-		camaroShader.UseProgram();
-		camaroModel.BindVertex();
-
-		camaroShader.ActivateTexture();
-
-		camaroModel.SetObjMat(objMat);
-		camaroModel.SetScale(glm::vec3(0.05f));
-		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
-		camaroModel.DrawArraysTriangles();
-		// == ==
+		// DRAW REFLEX
 
 		// We restore the previous conditions
 		RenderVars::_MVP = t_mvp;
@@ -344,33 +244,8 @@ namespace Object
 		glViewport(0, 0, 800, 800); //camWidth, camHeight);
 		glBindTexture(GL_TEXTURE_2D, Framebuffer::fbo_tex);
 		glm::vec3 c1_pos = glm::vec3(-10.f, 0.f, 0.f);
-		//drawCubeAt(c1_pos, glm::vec3(1.0f, 0.2f, 1.f), 0.5f, cubeProgramWithTexture);
 
-		// == FRAMEBUFFER CUBE ==
-		framebufferCubeShader.UseProgram();
-		framebufferCubeModel.BindVertex();
-
-		// Texture
-		framebufferCubeShader.ActivateTexture();
-
-		framebufferCubeModel.SetLocation(glm::vec3(10.f, 0.f, -10.f));
-		framebufferCubeModel.SetScale(glm::vec3(0.2f));
-		framebufferCubeModel.SetUniforms(framebufferCubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
-		framebufferCubeModel.DrawArraysTriangles();
-		// ==
-
-		// == CAMARO ==
-		camaroShader.UseProgram();
-		camaroModel.BindVertex();
-
-		camaroShader.ActivateTexture();
-
-		camaroModel.SetScale(glm::vec3(0.05f));
-		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
-		camaroModel.DrawArraysTriangles();
-		// == ==
+		// DRAW STUFF
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
@@ -382,9 +257,6 @@ namespace Object
 		float time = ImGui::GetTime();
 
 		// == FRAMEBUFFER CUBE ==
-		//framebufferCubeShader.GenerateFramebufferTexture();
-		//DrawCubeFBOTex(fragColor);
-
 		framebufferCubeShader.UseProgram();
 		framebufferCubeModel.BindVertex();
 
@@ -418,15 +290,15 @@ namespace Object
 		camaroShader.ActivateTexture();
 
 		prevCamaroPos = camaroModel.GetLocation();
-		currCamaroPos = glm::vec3(sin(time) * 30.f, 0.f, cos(time) * 30.f);
+		currCamaroPos = glm::vec3(glm::sin(time) * 30.f, 0.f, glm::cos(time) * 30.f);
 
 		// Change position (transalte)
 		camaroModel.SetLocation(currCamaroPos);
 		camaroForwardVec = glm::normalize(currCamaroPos - prevCamaroPos);
 
 		// Change y-rotation (rotate)
-		camaroModel.SetRoatationAngle(ImGui::GetTime() + 90.f);
-		camaroModel.SetRotation(glm::vec3(0.f, glm::degrees(ImGui::GetTime()) + 90.f, 0.f));
+		camaroModel.SetRoatationAngle(time + 90.f);
+		camaroModel.SetRotation(glm::vec3(0.f, glm::degrees(camaroModel.GetRotationAngle()), 0.f));
 
 		// Change size (scale)
 		camaroModel.SetScale(glm::vec3(0.05f));
@@ -438,135 +310,25 @@ namespace Object
 
 		
 		// == MIRROR ==
+		//mirrorPlaneShader.GenerateFramebufferTexture();
+		//DrawCubeFBOTex(fragColor, time);
 
+		mirrorPlaneShader.UseProgram();
+		mirrorPlaneModel.BindVertex();
+
+		mirrorPlaneShader.ActivateTexture();
+
+		mirrorPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.f, 4.f, 0.f));
+		mirrorPlaneModel.SetRoatationAngle(time + 0.5f);
+		mirrorPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
+		mirrorPlaneModel.SetScale(glm::vec3(0.05f));
+
+		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
+		mirrorPlaneModel.DrawArraysTriangles();
 		// ======
 
 		glBindVertexArray(0);
-	}
-}
-
-////////////////////////////////////////////////// EXERCISE
-namespace Exercise
-{
-	GLuint program;
-	GLuint VAO, VBO;
-
-	float vertices[] = {
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.0f,  0.5f, 0.0f
-	};
-
-	// A vertex shader that assigns a static position to the vertex
-	static const GLchar* vertex_shader_source[] = {
-		"#version 330\n"
-		"layout (location = 0) in vec3 aPos;"
-		"\n"
-		"void main(){\n"
-			"gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);"
-			"\n"
-		"}"
-	};
-
-	// A fragment shader that assigns a static color
-	static const GLchar* fragment_shader_source[] = {
-		"#version 330\n"
-		"\n"
-		"out vec4 color;\n"
-		"uniform vec4 triangleColor;\n"
-		"void main(){\n"
-			"color = triangleColor;\n"
-		"}"
-	};
-
-
-	void init()
-	{
-		//Inicialitzar ID del Shader 
-		GLuint vertex_shader;
-		GLuint fragment_shader;
-
-		//Crear ID Shader 
-		vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-		fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-
-		//Cargar datos del Shader en la ID
-		glShaderSource(vertex_shader, 1, vertex_shader_source, NULL);
-		glShaderSource(fragment_shader, 1, fragment_shader_source, NULL);
-
-		//Operar con el Shader -> Pilla la string que te paso y traducelo a binario
-		compileShader(vertex_shader_source[0], GL_VERTEX_SHADER, "vertex");
-		compileShader(fragment_shader_source[0], GL_FRAGMENT_SHADER, "fragment");
-
-		//Crear programa y enlazarlo con los Shaders (Operaciones Bind())
-		program = glCreateProgram();
-		glAttachShader(program, vertex_shader);
-		glAttachShader(program, fragment_shader);
-
-		linkProgram(program);
-
-		// Destroy
-		glDeleteShader(vertex_shader);
-		glDeleteShader(fragment_shader);
-
-		//Create the vertex array object
-		//This object maintains the state related to the input of the OpenGL
-		glGenVertexArrays(1, &VAO);
-		glBindVertexArray(VAO);
-
-		// Create the vertext buffer object
-		// It contains arbitrary data for the vertices. (coordinates)
-		glGenBuffers(1, &VBO);
-
-		// Until we bind another buffer, calls related 
-		// to the array buffer will use VBO
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-		// Copy the data to the array buffer
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-		// Specify the layout of the arbitrary data setting
-		glVertexAttribPointer(
-			0,					// Set same as specified in the shader
-			3,					// Size of the vertex attribute
-			GL_FLOAT,			// Specifies the data type of each component in the array
-			GL_FALSE,			// Data needs to be normalized? (NO)
-			3 * sizeof(float),	// Stride; byte offset between consecutive vertex attributes
-			(void*)0			// Offset of where the position data begins in the buffer
-		);
-
-		// Once specified, we enable it
-		glEnableVertexAttribArray(0);
-
-		// Clean
-		glBindVertexArray(0);
-	}
-
-	void cleanup()
-	{
-		glDeleteProgram(program);
-		glDeleteVertexArrays(1, &VAO);
-		glDeleteBuffers(1, &VBO);
-	}
-
-	void render()
-	{
-		glPointSize(40.0f);
-		glBindVertexArray(VAO);
-		glUseProgram(program);
-
-		time_t currentTime = SDL_GetTicks() / 1000;
-		const GLfloat color[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
-
-		glUniform4f(glGetUniformLocation(program, "triangleColor"), color[0], color[1], color[2], color[3]);
-
-		glDrawArrays(GL_TRIANGLES, 0, 3);
-		//glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		//glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-		//glDrawArrays(GL_QUADS, 0, 4);
-		//glDrawArrays(GL_LINE_LOOP, 0, 4);
-		//glDrawArrays(GL_LINES, 0, 3);
-		//glDrawArrays(GL_LINE_STRIP, 0, 6);
 	}
 }
 
@@ -907,8 +669,8 @@ void GLrender(float dt)
 	}
 	else
 	{
-		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 160.f), glm::vec3(0.f, 1.f, 0.f));
-		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 180.f), glm::vec3(0.f, 1.f, 0.f));
+		//RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
 		glm::vec3 camaroCameraPos{ Object::camaroModel.GetLocation() + (Object::camaroForwardVec * -1.5f) + glm::vec3(0.f, 7.f, 0.f) };
 		RV::_modelView = glm::translate(RV::_modelView, -camaroCameraPos);
@@ -933,14 +695,11 @@ void GUI()
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-		/////////////////////////////////////////////////////TODO
 		if (ImGui::Button("Change Camera"))
 		{
 			Object::inFreeCam = !Object::inFreeCam;
 		}
-		/////////////////////////////////////////////////////////
 	}
-	// .........................
 
 	ImGui::End();
 
