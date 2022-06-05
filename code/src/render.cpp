@@ -39,7 +39,7 @@ namespace RenderVars
 {
 	const float FOV = glm::radians(65.f);
 	const float zNear = 1.f;
-	const float zFar = 50.f;
+	const float zFar = 100.f;
 
 	glm::mat4 _projection;
 	glm::mat4 _modelView;
@@ -241,12 +241,19 @@ namespace Framebuffer
 namespace Object
 {
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
-	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
 	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
+	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
+	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 
 	Model framebufferCubeModel("newCube.obj");
-	Model camaroModel("Camaro.obj");
 	Model floorModel("groundPlane.obj");
+	Model camaroModel("Camaro.obj");
+	Model mirrorPlaneModel("planeTest.obj");
+
+	glm::vec3 prevCamaroPos;
+	glm::vec3 currCamaroPos;
+	glm::vec3 camaroForwardVec;
+	bool inFreeCam = true;
 
 	void setup()
 	{
@@ -255,16 +262,19 @@ namespace Object
 		framebufferCubeShader.CreateAllShaders();
 		camaroShader.CreateAllShaders();
 		floorShader.CreateAllShaders();
+		mirrorPlaneShader.CreateAllShaders();
 
 		//Create the vertex array object
 		framebufferCubeModel.CreateVertexArrayObject();
 		camaroModel.CreateVertexArrayObject();
 		floorModel.CreateVertexArrayObject();
+		mirrorPlaneModel.CreateVertexArrayObject();
 
 		// Texture
 		framebufferCubeShader.GenerateTexture();
 		camaroShader.GenerateTexture();
 		floorShader.GenerateTexture();
+		mirrorPlaneShader.GenerateTexture();
 
 		// Clean
 		glBindVertexArray(0);
@@ -275,10 +285,12 @@ namespace Object
 		framebufferCubeShader.DeleteProgram();
 		camaroShader.DeleteProgram();
 		floorShader.DeleteProgram();
+		mirrorPlaneShader.DeleteProgram();
 
 		framebufferCubeModel.Cleanup();
 		camaroModel.Cleanup();
 		floorModel.Cleanup();
+		mirrorPlaneModel.Cleanup();
 	}
 
 	void DrawCubeFBOTex(glm::vec4 fragColor)
@@ -397,30 +409,36 @@ namespace Object
 		
 		floorModel.DrawArraysTriangles();
 		// ======
-		
+
+
 		// == CAMARO ==
 		camaroShader.UseProgram();
 		camaroModel.BindVertex();
 
 		camaroShader.ActivateTexture();
 
-		// Change position (transalte)
-		glm::mat4 carTranslateMatrix = glm::translate(glm::mat4(), glm::vec3(sin(time) * 10.f + 10.0f, 0.f, 10.0f));
+		prevCamaroPos = camaroModel.GetLocation();
+		currCamaroPos = glm::vec3(sin(time) * 30.f, 0.f, cos(time) * 30.f);
 
-		// Change size (scale)
-		glm::mat4 carScaleMatrix = glm::scale(glm::mat4(), glm::vec3(0.05f));
+		// Change position (transalte)
+		camaroModel.SetLocation(currCamaroPos);
+		camaroForwardVec = glm::normalize(currCamaroPos - prevCamaroPos);
 
 		// Change y-rotation (rotate)
-		float rotateAngle = time;
-		glm::mat4 carRotateMatrix = glm::rotate(glm::mat4(), rotateAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+		camaroModel.SetRoatationAngle(ImGui::GetTime() + 90.f);
+		camaroModel.SetRotation(glm::vec3(0.f, glm::degrees(ImGui::GetTime()) + 90.f, 0.f));
 
-		// Rotate along the center (rotate)
-		glm::mat4 carToCenterTranslateMatrix = glm::translate(glm::mat4(), glm::vec3(10.0f, 0.0f, sin(time) * 10.0f + 10.f));
+		// Change size (scale)
+		camaroModel.SetScale(glm::vec3(0.05f));
 
-		camaroModel.SetObjMat(carTranslateMatrix * carRotateMatrix * carToCenterTranslateMatrix * carScaleMatrix);
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
 		camaroModel.DrawArraysTriangles();
+		// ======
+
+		
+		// == MIRROR ==
+
 		// ======
 
 		glBindVertexArray(0);
@@ -862,14 +880,6 @@ void GLinit(int width, int height)
 	Axis::setupAxis();
 	Object::setup();
 	//Cube::setupCube();
-
-
-	/////////////////////////////////////////////////////TODO
-	// Do your init code here
-	// ...
-	//Exercise::init();
-	// ...
-	/////////////////////////////////////////////////////////
 }
 
 void GLcleanup() 
@@ -877,13 +887,6 @@ void GLcleanup()
 	Axis::cleanupAxis();
 	Object::cleanup();
 	//Cube::cleanupCube();
-
-	/////////////////////////////////////////////////////TODO
-	// Do your cleanup code here
-	// ...
-	//Exercise::cleanup();
-	// ...
-	/////////////////////////////////////////////////////////
 }
 
 void GLrender(float dt) 
@@ -896,7 +899,7 @@ void GLrender(float dt)
 	glClearBufferfv(GL_COLOR, 0, color);
 
 	RV::_modelView = glm::mat4(1.f);
-	if (true)
+	if (Object::inFreeCam)
 	{
 		RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
 		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
@@ -904,11 +907,11 @@ void GLrender(float dt)
 	}
 	else
 	{
-		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 180.f), glm::vec3(0.f, 1.f, 0.f));
-		//RV::_modelView = glm::rotate(RV::_modelView, Object::carRota, glm::vec3(0.f, 1.f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 160.f), glm::vec3(0.f, 1.f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
-		//glm::vec3 carCameraPos{ Object::camaroModel.GetLocation() + (*carForward * -1.5f) + glm::vec3(0.f, 4.f, 0.f) };
-		//RV::_modelView = glm::translate(RV::_modelView, -carCameraPos);
+		glm::vec3 camaroCameraPos{ Object::camaroModel.GetLocation() + (Object::camaroForwardVec * -1.5f) + glm::vec3(0.f, 7.f, 0.f) };
+		RV::_modelView = glm::translate(RV::_modelView, -camaroCameraPos);
 	}
 	
 
@@ -931,10 +934,10 @@ void GUI()
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 		/////////////////////////////////////////////////////TODO
-		// Do your GUI code here....
-		// ...
-		// ...
-		// ...
+		if (ImGui::Button("Change Camera"))
+		{
+			Object::inFreeCam = !Object::inFreeCam;
+		}
 		/////////////////////////////////////////////////////////
 	}
 	// .........................

@@ -5,7 +5,8 @@ Model::Model(char* objPath)
 	objMat = glm::mat4(1.f);
 	scale = glm::vec3(1.f);
 	location = glm::vec3(0.f);
-	rotation = glm::vec3(0.f);
+	rotation = glm::vec3(0.f, 1.f, 0.f);
+	rotationAngle = 0.f;
 
 	bool res = loadObject::loadOBJ(objPath, objVertices, objUVs, objNormals);
 }
@@ -68,10 +69,24 @@ void Model::SetLocation(glm::vec3 newLocation)
 	location = newLocation;
 }
 
+void Model::SetRotation(glm::vec3 newRotation)
+{
+	rotation = newRotation;
+}
+
+void Model::SetRoatationAngle(float newAngle)
+{
+	rotationAngle = newAngle;
+}
+
+void Model::CalculateObjMat()
+{
+	objMat = glm::translate(glm::mat4(), location) * glm::rotate(glm::mat4(), rotationAngle, rotation) * glm::scale(glm::mat4(), scale);
+}
+
 void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec3 fragColor)
 {
-	if (objMat == glm::mat4(1.f))
-		objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
+	CalculateObjMat();
 
 	shader.SetUniformInt("diffuseTexture", 0);
 	shader.SetUniformMatrix4("objMat", objMat);
@@ -112,4 +127,9 @@ glm::vec3 Model::GetLocation()
 glm::vec3 Model::GetRotation()
 {
 	return rotation;
+}
+
+float Model::GetRotationAngle()
+{
+	return rotationAngle;
 }

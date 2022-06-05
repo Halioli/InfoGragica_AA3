@@ -23,6 +23,11 @@ public:
 	void SetObjMat(glm::mat4 newObjMat);
 	void SetScale(glm::vec3 newScale);
 	void SetLocation(glm::vec3 newLocation);
+	void SetRotation(glm::vec3 newRotation);
+	void SetRoatationAngle(float newAngle);
+	
+	void CalculateObjMat();
+
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec3 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec3 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float &time, glm::vec3 fragColor);
@@ -32,6 +37,7 @@ public:
 
 	glm::vec3 GetLocation();
 	glm::vec3 GetRotation();
+	float GetRotationAngle();
 
 private:
 	GLuint VAO;
@@ -41,6 +47,7 @@ private:
 	std::vector<glm::vec2> objUVs;
 	std::vector<glm::vec3> objNormals;
 
+	float rotationAngle;
 	glm::mat4 objMat;
 	glm::vec3 rotation;
 	glm::vec3 scale;
