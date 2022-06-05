@@ -242,9 +242,11 @@ namespace Object
 {
 	Shader framebufferCubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
+	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
 
 	Model framebufferCubeModel("newCube.obj");
 	Model camaroModel("Camaro.obj");
+	Model floorModel("groundPlane.obj");
 
 	void setup()
 	{
@@ -252,14 +254,17 @@ namespace Object
 		//Inicialitzar el Shader 
 		framebufferCubeShader.CreateAllShaders();
 		camaroShader.CreateAllShaders();
+		floorShader.CreateAllShaders();
 
 		//Create the vertex array object
 		framebufferCubeModel.CreateVertexArrayObject();
 		camaroModel.CreateVertexArrayObject();
+		floorModel.CreateVertexArrayObject();
 
 		// Texture
 		framebufferCubeShader.GenerateTexture();
 		camaroShader.GenerateTexture();
+		floorShader.GenerateTexture();
 
 		// Clean
 		glBindVertexArray(0);
@@ -269,9 +274,11 @@ namespace Object
 	{
 		framebufferCubeShader.DeleteProgram();
 		camaroShader.DeleteProgram();
+		floorShader.DeleteProgram();
 
 		framebufferCubeModel.Cleanup();
 		camaroModel.Cleanup();
+		floorModel.Cleanup();
 	}
 
 	void DrawCubeFBOTex(glm::vec4 fragColor)
@@ -362,10 +369,6 @@ namespace Object
 		fragColor = glm::vec4(5.f, 5.f, 5.f, 1.0f);
 		float time = ImGui::GetTime();
 
-		// Alpha blending
-		//glEnable(GL_BLEND);
-		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		// == FRAMEBUFFER CUBE ==
 		//framebufferCubeShader.GenerateFramebufferTexture();
 		//DrawCubeFBOTex(fragColor);
@@ -381,7 +384,19 @@ namespace Object
 		framebufferCubeModel.SetUniforms(framebufferCubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
 		framebufferCubeModel.DrawArraysTriangles();
-		// ==
+		// ======
+
+		// == FLOOR ==
+		floorShader.UseProgram();
+		floorModel.BindVertex();
+
+		floorShader.ActivateTexture();
+		
+		floorModel.SetScale(glm::vec3(0.4f));
+		floorModel.SetUniforms(floorShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		
+		floorModel.DrawArraysTriangles();
+		// ======
 		
 		// == CAMARO ==
 		camaroShader.UseProgram();
@@ -389,12 +404,24 @@ namespace Object
 
 		camaroShader.ActivateTexture();
 
-		camaroModel.SetLocation(glm::vec3(cos(time) * 2.0f + 2.0f, 0.0f, 2.0f));
-		camaroModel.SetScale(glm::vec3(0.05f));
+		// Change position (transalte)
+		glm::mat4 carTranslateMatrix = glm::translate(glm::mat4(), glm::vec3(sin(time) * 10.f + 10.0f, 0.f, 10.0f));
+
+		// Change size (scale)
+		glm::mat4 carScaleMatrix = glm::scale(glm::mat4(), glm::vec3(0.05f));
+
+		// Change y-rotation (rotate)
+		float rotateAngle = time;
+		glm::mat4 carRotateMatrix = glm::rotate(glm::mat4(), rotateAngle, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Rotate along the center (rotate)
+		glm::mat4 carToCenterTranslateMatrix = glm::translate(glm::mat4(), glm::vec3(10.0f, 0.0f, sin(time) * 10.0f + 10.f));
+
+		camaroModel.SetObjMat(carTranslateMatrix * carRotateMatrix * carToCenterTranslateMatrix * carScaleMatrix);
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
 		camaroModel.DrawArraysTriangles();
-		// == ==
+		// ======
 
 		glBindVertexArray(0);
 	}
@@ -865,24 +892,31 @@ void GLrender(float dt)
 
 	time_t currentTime = SDL_GetTicks() / 1000;
 
-	const GLfloat color[] = { 0.5f, 0.5f, 0.5f, 1.0f }; //{ (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
+	const GLfloat color[] = { 0.5f, 0.5f, 0.5f, 1.0f };
 	glClearBufferfv(GL_COLOR, 0, color);
 
 	RV::_modelView = glm::mat4(1.f);
-	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
-	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
-	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+	if (true)
+	{
+		RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
+		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+	}
+	else
+	{
+		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 180.f), glm::vec3(0.f, 1.f, 0.f));
+		//RV::_modelView = glm::rotate(RV::_modelView, Object::carRota, glm::vec3(0.f, 1.f, 0.f));
+
+		//glm::vec3 carCameraPos{ Object::camaroModel.GetLocation() + (*carForward * -1.5f) + glm::vec3(0.f, 4.f, 0.f) };
+		//RV::_modelView = glm::translate(RV::_modelView, -carCameraPos);
+	}
+	
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	Axis::drawAxis();
 	//Cube::drawCube();
 	Object::render();
-
-	/////////////////////////////////////////////////////TODO
-	// Do your render code here
-	//Exercise::render();
-	/////////////////////////////////////////////////////////
 
 	ImGui::Render();
 }

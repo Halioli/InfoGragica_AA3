@@ -30,6 +30,9 @@ public:
 	void DrawArraysTriangles();
 	void DrawArraysPoints();
 
+	glm::vec3 GetLocation();
+	glm::vec3 GetRotation();
+
 private:
 	GLuint VAO;
 	GLuint VBO[3];
@@ -39,7 +42,7 @@ private:
 	std::vector<glm::vec3> objNormals;
 
 	glm::mat4 objMat;
-	glm::vec3 translate;
+	glm::vec3 rotation;
 	glm::vec3 scale;
 	glm::vec3 location;
 };

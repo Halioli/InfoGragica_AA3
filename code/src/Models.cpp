@@ -5,6 +5,7 @@ Model::Model(char* objPath)
 	objMat = glm::mat4(1.f);
 	scale = glm::vec3(1.f);
 	location = glm::vec3(0.f);
+	rotation = glm::vec3(0.f);
 
 	bool res = loadObject::loadOBJ(objPath, objVertices, objUVs, objNormals);
 }
@@ -71,8 +72,6 @@ void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::
 {
 	if (objMat == glm::mat4(1.f))
 		objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
-	else
-		objMat = glm::translate(glm::mat4(), location) * glm::scale(glm::mat4(), scale);
 
 	shader.SetUniformInt("diffuseTexture", 0);
 	shader.SetUniformMatrix4("objMat", objMat);
@@ -103,4 +102,14 @@ void Model::DrawArraysTriangles()
 void Model::DrawArraysPoints()
 {
 	glDrawArrays(GL_POINTS, 0, objVertices.size());
+}
+
+glm::vec3 Model::GetLocation()
+{
+	return location;
+}
+
+glm::vec3 Model::GetRotation()
+{
+	return rotation;
 }
