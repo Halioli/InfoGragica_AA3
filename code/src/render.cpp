@@ -199,6 +199,8 @@ namespace Object
 
 	void setup()
 	{
+		srand(time(NULL));
+
 		randomOffset.resize(10);
 		randomPos.resize(10);
 		for (int i = 0; i < randomOffset.size(); i++)
@@ -218,7 +220,7 @@ namespace Object
 		boxObjMats.resize(10);
 		for (int i = 0; i < boxObjMats.size(); i++)
 		{
-			boxObjMats[i] = glm::translate(glm::mat4(), glm::vec3(randomPos[i], 0.f, randomOffset[i]))
+			boxObjMats[i] = glm::translate(glm::mat4(), glm::vec3(randomPos[i], 0.f, randomPos[i]))
 						  * glm::scale(glm::mat4(), glm::vec3(0.2f));
 		}
 
