@@ -175,11 +175,11 @@ namespace Framebuffer
 ////////////////////////////////////////////////// OBJECT
 namespace Object
 {
-	Shader cubeShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
+	Shader cubeShader("box_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
 	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
 	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
-	Shader windowPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
+	Shader windowPlaneShader("cube_vertexShader.vs", "window_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
 
 	Model cubeModel("newCube.obj");
 	Model floorModel("groundPlane.obj");
@@ -187,6 +187,10 @@ namespace Object
 	Model mirrorPlaneModel("basicPlane.obj");
 	Model windowPlaneModel("basicPlane.obj");
 
+	std::vector<int> randomOffset;
+	std::vector<int> randomPos;
+	std::vector<glm::mat4> camaroObjMats;
+	std::vector<glm::mat4> boxObjMats;
 	glm::vec3 prevCamaroPos;
 	glm::vec3 currCamaroPos;
 	glm::vec3 camaroForwardVec;
@@ -195,7 +199,31 @@ namespace Object
 
 	void setup()
 	{
+		randomOffset.resize(10);
+		randomPos.resize(10);
+		for (int i = 0; i < randomOffset.size(); i++)
+		{
+			randomOffset[i] = rand() % (40 - 10 + 1) + 10;
+			randomPos[i] = rand() % (40 - -40 + 1) + -40;
+		}
+
+		camaroObjMats.resize(10);
+		for (int i = 0; i < camaroObjMats.size(); i++)
+		{
+			camaroObjMats[i] = glm::translate(glm::mat4(), glm::vec3(glm::sin(randomOffset[i]) * 10.f, 0.f, glm::sin(randomOffset[i]) * 10.f))
+							 * glm::rotate(glm::mat4(), randomOffset[i] + 90.f, glm::vec3(0.f, glm::degrees(randomOffset[i] + 90.f), 0.f))
+							 * glm::scale(glm::mat4(), glm::vec3(0.05f));
+		}
+
+		boxObjMats.resize(10);
+		for (int i = 0; i < boxObjMats.size(); i++)
+		{
+			boxObjMats[i] = glm::translate(glm::mat4(), glm::vec3(randomPos[i], 0.f, randomOffset[i]))
+						  * glm::scale(glm::mat4(), glm::vec3(0.2f));
+		}
+
 		//Framebuffer::SetupFBO();
+
 		
 		//Inicialitzar el Shader 
 		cubeShader.CreateAllShaders();
@@ -274,7 +302,7 @@ namespace Object
 	void render()
 	{
 		glm::vec4 fragColor;
-		fragColor = glm::vec4(5.f, 5.f, 5.f, 1.0f);
+		fragColor = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
 		float time = ImGui::GetTime();
 		
 		// == CUBE ==
@@ -288,7 +316,8 @@ namespace Object
 		cubeModel.SetScale(glm::vec3(0.2f));
 		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
-		cubeModel.DrawArraysTriangles();
+		cubeModel.DrawArraysTrianglesInstanced(boxObjMats, cubeShader);
+		//cubeModel.DrawArraysTriangles();
 		// ======
 
 		// == FLOOR ==
@@ -306,7 +335,6 @@ namespace Object
 
 		// == CAMARO ==
 		glEnable(GL_STENCIL_TEST);
-		glClear(GL_STENCIL_BUFFER_BIT);
 		glStencilFunc(GL_ALWAYS, 1, 0xff);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glStencilMask(0xff);
@@ -333,33 +361,18 @@ namespace Object
 
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, glm::vec4(5.f, 5.f, 5.f, 0.8f));
 
-		camaroModel.DrawArraysTriangles();
+		camaroObjMats[0] = camaroModel.GetModelMatrix();
+		for (int i = 1; i < camaroObjMats.size(); i++)
+		{
+			camaroObjMats[i] = glm::translate(glm::mat4(), glm::vec3(glm::sin(time + randomOffset[i]) * randomOffset[i], 0.f, glm::cos(time + randomOffset[i]) * randomOffset[i]))
+				* glm::rotate(glm::mat4(), time + randomOffset[i] + 90.f, glm::vec3(0.f, glm::degrees(time + randomOffset[i] + 90.f), 0.f))
+				* glm::scale(glm::mat4(), glm::vec3(0.05f));
+		}
+		camaroModel.DrawArraysTrianglesInstanced(camaroObjMats, camaroShader);
+		//camaroModel.DrawArraysTriangles();
 		glEnable(GL_CULL_FACE);
 		// ======
 
-
-		// == WINDOW ==
-		if (!inFreeCam)
-		{
-			glStencilFunc(GL_GREATER, 1, 0xff);
-			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-			windowPlaneShader.UseProgram();
-			windowPlaneModel.BindVertex();
-
-			windowPlaneShader.ActivateTexture();
-
-			windowPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.01f, 4.f, 0.01f));
-			windowPlaneModel.SetRoatationAngle(time + 0.5f);
-			windowPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
-			windowPlaneModel.SetScale(glm::vec3(0.1f, 0.1f, 0.4f));
-			windowPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, glm::vec4(fragColor.x, fragColor.y, fragColor.z, windowAlpha));
-
-			windowPlaneModel.DrawArraysTriangles();
-		}
-		glDisable(GL_STENCIL_TEST);
-		// ======
-		
 
 		// == MIRROR ==
 		//mirrorPlaneShader.GenerateFramebufferTexture();
@@ -378,6 +391,35 @@ namespace Object
 		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 
 		mirrorPlaneModel.DrawArraysTriangles();
+		// ======
+
+
+		// == WINDOW ==
+		// Alpha blending
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+		if (!inFreeCam)
+		{
+			glStencilFunc(GL_GREATER, 1, 0xff);
+			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+			windowPlaneShader.UseProgram();
+			windowPlaneModel.BindVertex();
+
+			windowPlaneShader.ActivateTexture();
+
+			windowPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.01f, 4.f, 0.01f));
+			windowPlaneModel.SetRoatationAngle(time + 0.5f);
+			windowPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
+			windowPlaneModel.SetScale(glm::vec3(0.1f, 0.1f, 0.4f));
+			windowPlaneModel.SetUniforms(windowPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor, windowAlpha);
+
+			windowPlaneModel.DrawArraysTriangles();
+		}
+
+		glDisable(GL_STENCIL_TEST);
+		glDisable(GL_BLEND);
 		// ======
 
 		glBindVertexArray(0);
@@ -520,7 +562,7 @@ void GLcleanup()
 
 void GLrender(float dt) 
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 	time_t currentTime = SDL_GetTicks() / 1000;
 

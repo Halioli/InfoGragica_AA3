@@ -31,13 +31,16 @@ public:
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec4 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float &time, glm::vec4 fragColor);
+	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor, float alphaVal);
 	
 	void DrawArraysTriangles();
 	void DrawArraysPoints();
+	void DrawArraysTrianglesInstanced(std::vector<glm::mat4> objMats, Shader shader);
 
 	glm::vec3 GetLocation();
 	glm::vec3 GetRotation();
 	float GetRotationAngle();
+	glm::mat4 GetModelMatrix();
 
 private:
 	GLuint VAO;

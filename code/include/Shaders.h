@@ -15,11 +15,13 @@ class Shader
 {
 public:
 	Shader(std::string vertexShaderPath, std::string fragmentShaderPath, std::string geometryShaderPath, char* texturePath, bool fliped);
+	Shader(std::string vertexShaderPath, std::string fragmentShaderPath, char* texturePath, bool fliped);
 	~Shader();
 
 	std::string GetShaderFromPath(std::string fragmentPath);
 
 	void CreateAllShaders();
+	void CreateTwoShaders();
 	void UseProgram();
 	void DeleteProgram();
 	GLuint GetProgram();
@@ -33,12 +35,12 @@ public:
 	void GenerateFramebufferTexture();
 	void GenerateFramebufferCubemapTexture();
 
-	GLuint GetUniformLocation(char* uniformName);
+	GLuint GetUniformLocation(const char* uniformName);
 	void SetUniformInt(char* uniformName, int value);
 	void SetUniformFloat(char* uniformName, float value);
 	void SetUniformVector3(char* uniformName, glm::vec3 value);
 	void SetUniformVector4(char* uniformName, glm::vec3 value);
-	void SetUniformMatrix4(char* uniformName, glm::mat4 value);
+	void SetUniformMatrix4(const char* uniformName, glm::mat4 value);
 
 	int GetTextureWidth();
 	int GetTextureHeight();

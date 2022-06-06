@@ -45,6 +45,15 @@ Shader::Shader(std::string vertexShaderPath, std::string fragmentShaderPath, std
     textureData = stbi_load(texturePath, &width, &height, &numberOfColorChannels, 0);
 }
 
+Shader::Shader(std::string vertexShaderPath, std::string fragmentShaderPath, char* texturePath, bool fliped)
+{
+    vertexShaderSource = GetShaderFromPath(vertexShaderPath);
+    fragmentShaderSource = GetShaderFromPath(fragmentShaderPath);
+
+    stbi_set_flip_vertically_on_load(fliped);
+    textureData = stbi_load(texturePath, &width, &height, &numberOfColorChannels, 0);
+}
+
 Shader::~Shader() {}
 
 std::string Shader::GetShaderFromPath(std::string fragmentPath)
@@ -116,6 +125,43 @@ void Shader::CreateAllShaders()
 
     delete[] vertexS;
     delete[] geometryS;
+    delete[] fragmentS;
+}
+
+void Shader::CreateTwoShaders()
+{
+    char* vertexS = new char[vertexShaderSource.size() + 1];
+    std::copy(vertexShaderSource.begin(), vertexShaderSource.end(), vertexS);
+    vertexS[vertexShaderSource.size()] = '\0';
+
+    char* fragmentS = new char[fragmentShaderSource.size() + 1];
+    std::copy(fragmentShaderSource.begin(), fragmentShaderSource.end(), fragmentS);
+    fragmentS[fragmentShaderSource.size()] = '\0';
+
+    //Crear ID Shader 
+    GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    //Cargar datos del Shader en la ID
+    glShaderSource(vertex_shader, 1, &vertexS, NULL);
+    glShaderSource(fragment_shader, 1, &fragmentS, NULL);
+
+    //Operar con el Shader -> Pilla la string que te paso y traducelo a binario
+    compileShaderShaders(&vertexS[0], GL_VERTEX_SHADER, "vertex");
+    compileShaderShaders(&fragmentS[0], GL_FRAGMENT_SHADER, "fragment");
+
+    //Crear programa y enlazarlo con los Shaders (Operaciones Bind())
+    program = glCreateProgram();
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+
+    linkProgramShaders(program);
+
+    // Destroy
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    delete[] vertexS;
     delete[] fragmentS;
 }
 
@@ -206,7 +252,7 @@ void Shader::GenerateFramebufferCubemapTexture()
     // If we had depth or stencil, we would do it here.
 }
 
-GLuint Shader::GetUniformLocation(char* uniformName)
+GLuint Shader::GetUniformLocation(const char* uniformName)
 {
     return glGetUniformLocation(program, uniformName);
 }
@@ -231,7 +277,7 @@ void Shader::SetUniformVector4(char* uniformName, glm::vec3 value)
     glUniform4f(GetUniformLocation(uniformName), value.x, value.y, value.z, 1.0f);
 }
 
-void Shader::SetUniformMatrix4(char* uniformName, glm::mat4 value)
+void Shader::SetUniformMatrix4(const char* uniformName, glm::mat4 value)
 {
     glUniformMatrix4fv(GetUniformLocation(uniformName), 1, GL_FALSE, glm::value_ptr(value));
 }

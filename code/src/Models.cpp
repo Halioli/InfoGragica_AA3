@@ -109,6 +109,13 @@ void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float
 	SetUniforms(shader, modelView, MVP, fragColor);
 }
 
+void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor, float alphaVal)
+{
+	shader.SetUniformFloat("alphaVal", alphaVal);
+
+	SetUniforms(shader, modelView, MVP, fragColor);
+}
+
 void Model::DrawArraysTriangles()
 {
 	glDrawArrays(GL_TRIANGLES, 0, objVertices.size());
@@ -117,6 +124,15 @@ void Model::DrawArraysTriangles()
 void Model::DrawArraysPoints()
 {
 	glDrawArrays(GL_POINTS, 0, objVertices.size());
+}
+
+void Model::DrawArraysTrianglesInstanced(std::vector<glm::mat4> objMats, Shader shader)
+{
+	for (int i = 0; i < objMats.size(); i++)
+	{
+		shader.SetUniformMatrix4(("objMat[" + std::to_string(i) + "]").c_str(), objMats[i]);
+	}
+	glDrawArraysInstanced(GL_TRIANGLES, 0, objVertices.size(), objMats.size());
 }
 
 glm::vec3 Model::GetLocation()
@@ -132,4 +148,9 @@ glm::vec3 Model::GetRotation()
 float Model::GetRotationAngle()
 {
 	return rotationAngle;
+}
+
+glm::mat4 Model::GetModelMatrix()
+{
+	return objMat;
 }

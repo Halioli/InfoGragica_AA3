@@ -19,7 +19,7 @@ struct Material {
 uniform Material material;
 
 void main() {
-	out_Color = vec4(texture2D(diffuseTexture, fragmentUV).rgb, color.a);// * vec4(color.xyz * dot(fragmentNorm, mv_Mat * vec4(0.0, 1.0, 0.0, 0.0)) + color.xyz * 0.3, 1.0 );
+	out_Color = texture2D(diffuseTexture, fragmentUV);
 
 	// Remove alpha color
 	if (out_Color.a < 0.9)

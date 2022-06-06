@@ -9,6 +9,7 @@ uniform vec3 lightPos;
 uniform mat4 mv_Mat;
 uniform vec4 color;
 uniform sampler2D diffuseTexture;
+uniform float alphaVal;
 
 struct Material {
 	vec3 ambient;
@@ -19,11 +20,7 @@ struct Material {
 uniform Material material;
 
 void main() {
-	out_Color = texture(diffuseTexture, fragmentUV);
+	out_Color = texture2D(diffuseTexture, fragmentUV);
 
-	// Remove alpha color
-	if (out_Color.a < 0.9)
-	{
-		discard;
-	}
+	out_Color.a = alphaVal;
 }
