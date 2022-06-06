@@ -19,16 +19,6 @@ struct Material {
 uniform Material material;
 
 void main() {
-	// Checkerboard pattern
-	/*float X = floor((gl_FragCoord.x) / 8.0);
-	float Y = floor((gl_FragCoord.y) / 8.0);
-
-	if (mod(X + Y, 2) == 0)
-	{
-		discard;
-	}*/
-	//
-
 	out_Color = texture(diffuseTexture, fragmentUV);// * vec4(color.xyz * dot(fragmentNorm, mv_Mat * vec4(0.0, 1.0, 0.0, 0.0)) + color.xyz * 0.3, 1.0 );
 
 	// Remove alpha color

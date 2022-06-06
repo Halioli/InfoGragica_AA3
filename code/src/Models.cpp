@@ -84,7 +84,7 @@ void Model::CalculateObjMat()
 	objMat = glm::translate(glm::mat4(), location) * glm::rotate(glm::mat4(), rotationAngle, rotation) * glm::scale(glm::mat4(), scale);
 }
 
-void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec3 fragColor)
+void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor)
 {
 	CalculateObjMat();
 
@@ -95,14 +95,14 @@ void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::
 	shader.SetUniformVector4("color", fragColor);
 }
 
-void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec3 fragColor)
+void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec4 fragColor)
 {
 	shader.SetUniformVector3("cameraPos", cameraPoint);
 
 	SetUniforms(shader, modelView, MVP, fragColor);
 }
 
-void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float &time, glm::vec3 fragColor)
+void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float &time, glm::vec4 fragColor)
 {
 	shader.SetUniformFloat("time", time);
 
