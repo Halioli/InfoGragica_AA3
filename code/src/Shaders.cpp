@@ -174,7 +174,7 @@ void Shader::ActivateTexture()
 
 void Shader::ActivateCubemapTexture()
 {
-    glActiveTexture(GL_TEXTURE0);
+    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 }
 

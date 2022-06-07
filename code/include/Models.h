@@ -29,6 +29,7 @@ public:
 	void CalculateObjMat();
 
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor);
+	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor, int diffTexture);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec4 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, float &time, glm::vec4 fragColor);
 	void SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor, float alphaVal);

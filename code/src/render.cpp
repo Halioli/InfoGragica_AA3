@@ -21,7 +21,7 @@ GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name 
 void linkProgram(GLuint program);
 
 glm::vec3 camaroCameraPos = glm::vec3(1.f);
-int winWidth, winHeight;
+int winWidth = 800, winHeight = 960;
 
 ///////// fw decl
 namespace ImGui 
@@ -181,17 +181,28 @@ namespace Framebuffer
 ////////////////////////////////////////////////// OBJECT
 namespace Object
 {
+	std::vector<std::string> skyboxFaces = {
+		"right.jpg",
+		"left.jpg",
+		"top.jpg",
+		"bottom.jpg",
+		"front.jpg",
+		"back.jpg"
+	};
+
 	Shader cubeShader("box_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
 	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
 	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "tnt.png", true);
 	Shader windowPlaneShader("cube_vertexShader.vs", "window_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
+	Shader skyboxShader("skybox_vertexShader.vs", "skybox_fragmentShader.fs", "skybox_geometryShader.gs", "red.png", false, skyboxFaces);
 
 	Model cubeModel("newCube.obj");
 	Model floorModel("groundPlane.obj");
 	Model camaroModel("Camaro.obj");
 	Model mirrorPlaneModel("basicPlane.obj");
 	Model windowPlaneModel("basicPlane.obj");
+	Model skyboxModel("newCube.obj");
 
 	std::vector<int> randomOffset;
 	std::vector<int> randomPos;
@@ -226,7 +237,7 @@ namespace Object
 		boxObjMats.resize(10);
 		for (int i = 0; i < boxObjMats.size(); i++)
 		{
-			boxObjMats[i] = glm::translate(glm::mat4(), glm::vec3(randomPos[i], 0.f, randomPos[i]))
+			boxObjMats[i] = glm::translate(glm::mat4(), glm::vec3(randomPos[i], 2.f, randomPos[i]))
 						  * glm::scale(glm::mat4(), glm::vec3(0.2f));
 		}
 
@@ -238,6 +249,7 @@ namespace Object
 		floorShader.CreateAllShaders();
 		mirrorPlaneShader.CreateAllShaders();
 		windowPlaneShader.CreateAllShaders();
+		skyboxShader.CreateAllShaders();
 
 		//Create the vertex array object
 		cubeModel.CreateVertexArrayObject();
@@ -245,6 +257,7 @@ namespace Object
 		floorModel.CreateVertexArrayObject();
 		mirrorPlaneModel.CreateVertexArrayObject();
 		windowPlaneModel.CreateVertexArrayObject();
+		skyboxModel.CreateVertexArrayObject();
 
 		// Texture
 		cubeShader.GenerateTexture();
@@ -252,6 +265,7 @@ namespace Object
 		floorShader.GenerateTexture();
 		mirrorPlaneShader.GenerateTexture();
 		windowPlaneShader.GenerateTexture();
+		//skyboxShader already generated its texture
 
 		// Clean
 		glBindVertexArray(0);
@@ -264,12 +278,14 @@ namespace Object
 		floorShader.DeleteProgram();
 		mirrorPlaneShader.DeleteProgram();
 		windowPlaneShader.DeleteProgram();
+		skyboxShader.DeleteProgram();
 
 		cubeModel.Cleanup();
 		camaroModel.Cleanup();
 		floorModel.Cleanup();
 		mirrorPlaneModel.Cleanup();
 		windowPlaneModel.Cleanup();
+		skyboxModel.Cleanup();
 	}
 
 	void DrawCubeFBOTex(glm::vec4 fragColor, float time)
@@ -288,8 +304,11 @@ namespace Object
 		RenderVars::_modelView = glm::mat4(1.f);
 		
 		// Everything you want to draw in your texture should go here
-		glm::reflect(camaroForwardVec, glm::normalize(mirrorPlaneModel.GetObjNormal(0))); // JUST A REMINDER
-		glm::mat4 objMat = glm::lookAt(camaroCameraPos, glm::vec3(camaroCameraPos * camaroForwardVec), glm::vec3(0.f, 1.f, 0.f));
+		glm::vec3 mirroredDir = glm::reflect(camaroForwardVec, glm::normalize(mirrorPlaneModel.GetObjNormal(0)));
+		glm::mat4 lookAtMirror = glm::lookAt(camaroCameraPos, camaroCameraPos + mirroredDir, glm::vec3(0.f, 1.f, 0.f));
+
+		RenderVars::_MVP = lookAtMirror;
+		RenderVars::_modelView;
 
 		// == DRAW SCENE ==
 		// == CUBE ==
@@ -307,13 +326,26 @@ namespace Object
 		floorModel.SetUniforms(floorShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
 		floorModel.DrawArraysTriangles();
 		// ======
-		// == MIRROR ==
-		mirrorPlaneShader.UseProgram();
-		mirrorPlaneModel.BindVertex();
-		mirrorPlaneShader.ActivateTexture();
-		mirrorPlaneModel.SetObjMat(objMat);
-		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-		mirrorPlaneModel.DrawArraysTriangles();
+		// == CAMARO ==
+		glEnable(GL_STENCIL_TEST);
+		glStencilFunc(GL_ALWAYS, 1, 0xff);
+		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+		glStencilMask(0xff);
+		glDisable(GL_CULL_FACE);
+		camaroShader.UseProgram();
+		camaroModel.BindVertex();
+		camaroShader.ActivateTexture();
+		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		camaroModel.DrawArraysTrianglesInstanced(camaroObjMats, camaroShader);
+		glEnable(GL_CULL_FACE);
+		glDisable(GL_STENCIL_TEST);
+		// ======
+		// == SKYBOX ==
+		skyboxShader.UseProgram();
+		skyboxModel.BindVertex();
+		skyboxShader.ActivateCubemapTexture();
+		skyboxModel.SetUniforms(skyboxShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		skyboxModel.DrawArraysTriangles();
 		// ======
 
 
@@ -332,18 +364,24 @@ namespace Object
 		// == CUBE ==
 		cubeShader.UseProgram();
 		cubeModel.BindVertex();
+		// Texture
 		cubeShader.ActivateTexture();
+		// ObjMat & Uniforms
 		cubeModel.SetLocation(glm::vec3(10.f, 0.f, -10.f));
 		cubeModel.SetScale(glm::vec3(0.2f));
 		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		// Draw
 		cubeModel.DrawArraysTrianglesInstanced(boxObjMats, cubeShader);
 		// ======
 		// == FLOOR ==
 		floorShader.UseProgram();
 		floorModel.BindVertex();
+
 		floorShader.ActivateTexture();
+
 		floorModel.SetScale(glm::vec3(0.4f));
 		floorModel.SetUniforms(floorShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
 		floorModel.DrawArraysTriangles();
 		// ======
 		// == CAMARO ==
@@ -352,9 +390,12 @@ namespace Object
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glStencilMask(0xff);
 		glDisable(GL_CULL_FACE); // Disable it to draw even if normal is pointing outwards
+
 		camaroShader.UseProgram();
 		camaroModel.BindVertex();
+
 		camaroShader.ActivateTexture();
+
 		prevCamaroPos = camaroModel.GetLocation();
 		currCamaroPos = glm::vec3(glm::sin(time) * 30.f, 0.f, glm::cos(time) * 30.f);
 		// Change position (transalte)
@@ -373,18 +414,22 @@ namespace Object
 				* glm::rotate(glm::mat4(), time + randomOffset[i] + 90.f, glm::vec3(0.f, glm::degrees(time + randomOffset[i] + 90.f), 0.f))
 				* glm::scale(glm::mat4(), glm::vec3(0.05f));
 		}
+
 		camaroModel.DrawArraysTrianglesInstanced(camaroObjMats, camaroShader);
 		glEnable(GL_CULL_FACE);
 		// ======
 		// == MIRROR ==
 		mirrorPlaneShader.UseProgram();
 		mirrorPlaneModel.BindVertex();
+
 		mirrorPlaneShader.ActivateTexture(Framebuffer::fbo_tex);
+
 		mirrorPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.f, 4.f, 0.f));
 		mirrorPlaneModel.SetRoatationAngle(time + 0.5f);
 		mirrorPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
 		mirrorPlaneModel.SetScale(glm::vec3(0.05f));
 		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+
 		mirrorPlaneModel.DrawArraysTriangles();
 		// ======
 		// == WINDOW ==
@@ -395,25 +440,45 @@ namespace Object
 		{
 			glStencilFunc(GL_GREATER, 1, 0xff);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
 			windowPlaneShader.UseProgram();
 			windowPlaneModel.BindVertex();
+
 			windowPlaneShader.ActivateTexture();
+
 			windowPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.01f, 4.f, 0.01f));
 			windowPlaneModel.SetRoatationAngle(time + 0.5f);
 			windowPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
 			windowPlaneModel.SetScale(glm::vec3(0.1f, 0.1f, 0.4f));
 			windowPlaneModel.SetUniforms(windowPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor, windowAlpha);
+
 			windowPlaneModel.DrawArraysTriangles();
 		}
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
+		// ======
+		// == SKYBOX ==
+		glDisable(GL_CULL_FACE);
+		glDepthMask(GL_FALSE);
+
+		skyboxShader.UseProgram();
+		skyboxModel.BindVertex();
+
+		skyboxShader.ActivateCubemapTexture();
+
+		skyboxModel.SetScale(glm::vec3(8.f));
+		skyboxModel.SetUniforms(skyboxShader, RenderVars::_modelView, RenderVars::_MVP, fragColor, 2);
+
+		skyboxModel.DrawArraysTriangles();
+		glDepthMask(GL_TRUE);
+		glEnable(GL_CULL_FACE);
 		// ======
 	}
 
 	void render()
 	{
 		glm::vec4 fragColor;
-		fragColor = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
+		fragColor = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
 		float time = ImGui::GetTime();
 
 		// == MIRROR ==
@@ -544,19 +609,16 @@ void GLinit(int width, int height)
 	glEnable(GL_CULL_FACE);
 
 	RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
-	//RV::_projection = glm::ortho(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 
 	// Setup shaders & geometry
 	Axis::setupAxis();
 	Object::setup();
-	//Cube::setupCube();
 }
 
 void GLcleanup() 
 {
 	Axis::cleanupAxis();
 	Object::cleanup();
-	//Cube::cleanupCube();
 }
 
 void GLrender(float dt) 
@@ -578,7 +640,6 @@ void GLrender(float dt)
 	else
 	{
 		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 180.f), glm::vec3(0.f, 1.f, 0.f));
-		//RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
 		camaroCameraPos = { Object::camaroModel.GetLocation() + (Object::camaroForwardVec * -1.5f) + glm::vec3(0.f, 7.f, 0.f) };
 		RV::_modelView = glm::translate(RV::_modelView, -camaroCameraPos);
@@ -588,7 +649,6 @@ void GLrender(float dt)
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	Axis::drawAxis();
-	//Cube::drawCube();
 	Object::render();
 
 	ImGui::Render();

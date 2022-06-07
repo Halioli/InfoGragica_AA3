@@ -95,6 +95,17 @@ void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::
 	shader.SetUniformVector4("color", fragColor);
 }
 
+void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 fragColor, int diffTexture)
+{
+	CalculateObjMat();
+
+	shader.SetUniformInt("diffuseTexture", diffTexture);
+	shader.SetUniformMatrix4("objMat", objMat);
+	shader.SetUniformMatrix4("mv_Mat", modelView);
+	shader.SetUniformMatrix4("mvpMat", MVP);
+	shader.SetUniformVector4("color", fragColor);
+}
+
 void Model::SetUniforms(Shader shader, glm::mat4 modelView, glm::mat4 MVP, glm::vec4 cameraPoint, glm::vec4 fragColor)
 {
 	shader.SetUniformVector3("cameraPos", cameraPoint);
