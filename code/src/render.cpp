@@ -20,6 +20,9 @@
 GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name = "");
 void linkProgram(GLuint program);
 
+glm::vec3 camaroCameraPos = glm::vec3(1.f);
+int winWidth, winHeight;
+
 ///////// fw decl
 namespace ImGui 
 {
@@ -59,6 +62,9 @@ namespace RV = RenderVars;
 
 void GLResize(int width, int height) 
 {
+	winWidth = width;
+	winHeight = height;
+
 	glViewport(0, 0, width, height);
 	if (height != 0) RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 	else RV::_projection = glm::perspective(RV::FOV, 0.f, RV::zNear, RV::zFar);
@@ -178,7 +184,7 @@ namespace Object
 	Shader cubeShader("box_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
 	Shader floorShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "alfombra.png", false);
 	Shader camaroShader("car_vertexShader.vs", "car_fragmentShader.fs", "car_geometryShader.gs", "Camaro_AlbedoTransparency_alt.png", true);
-	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "wood.png", false);
+	Shader mirrorPlaneShader("cube_vertexShader.vs", "cube_fragmentShader.fs", "cube_geometryShader.gs", "tnt.png", true);
 	Shader windowPlaneShader("cube_vertexShader.vs", "window_fragmentShader.fs", "cube_geometryShader.gs", "red.png", false);
 
 	Model cubeModel("newCube.obj");
@@ -224,8 +230,7 @@ namespace Object
 						  * glm::scale(glm::mat4(), glm::vec3(0.2f));
 		}
 
-		//Framebuffer::SetupFBO();
-
+		Framebuffer::SetupFBO();
 		
 		//Inicialitzar el Shader 
 		cubeShader.CreateAllShaders();
@@ -275,7 +280,7 @@ namespace Object
 		
 		// We set up our framebuffer and draw into it
 		glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer::fbo);
-		glClearColor(1.f, 1.f, 1.f, 1.f);
+		glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 		glViewport(0, 0, 800, 800);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
@@ -283,86 +288,84 @@ namespace Object
 		RenderVars::_modelView = glm::mat4(1.f);
 		
 		// Everything you want to draw in your texture should go here
-		glm::mat4 objMat = glm::lookAt(glm::vec3(0.f, 1.5f, 3.5f), glm::vec3(0.f, 1.5f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+		glm::reflect(camaroForwardVec, glm::normalize(mirrorPlaneModel.GetObjNormal(0))); // JUST A REMINDER
+		glm::mat4 objMat = glm::lookAt(camaroCameraPos, glm::vec3(camaroCameraPos * camaroForwardVec), glm::vec3(0.f, 1.f, 0.f));
 
 		// == DRAW SCENE ==
+		// == CUBE ==
+		cubeShader.UseProgram();
+		cubeModel.BindVertex();
+		cubeShader.ActivateTexture();
+		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		cubeModel.DrawArraysTrianglesInstanced(boxObjMats, cubeShader);
+		// ======
+		// == FLOOR ==
+		floorShader.UseProgram();
+		floorModel.BindVertex();
+		floorShader.ActivateTexture();
+		floorModel.SetScale(glm::vec3(0.4f));
+		floorModel.SetUniforms(floorShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		floorModel.DrawArraysTriangles();
+		// ======
+		// == MIRROR ==
+		mirrorPlaneShader.UseProgram();
+		mirrorPlaneModel.BindVertex();
+		mirrorPlaneShader.ActivateTexture();
+		mirrorPlaneModel.SetObjMat(objMat);
+		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
+		mirrorPlaneModel.DrawArraysTriangles();
+		// ======
+
 
 		// We restore the previous conditions
 		RenderVars::_MVP = t_mvp;
 		RenderVars::_modelView = t_mv;
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glClearColor(1.f, 1.f, 1.f, 1.f);
+		glClearColor(0.5f, 0.5f, 0.5f, 1.f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		
 		// We set up a texture where to draw our FBO:
-		glViewport(0, 0, 800, 800);
+		GLResize(winWidth, winHeight);
 		glBindTexture(GL_TEXTURE_2D, Framebuffer::fbo_tex);
 
 		// == DRAW TEXTURE ==
-	}
-
-	void render()
-	{
-		glm::vec4 fragColor;
-		fragColor = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
-		float time = ImGui::GetTime();
-		
 		// == CUBE ==
 		cubeShader.UseProgram();
 		cubeModel.BindVertex();
-
-		// Texture
 		cubeShader.ActivateTexture();
-
 		cubeModel.SetLocation(glm::vec3(10.f, 0.f, -10.f));
 		cubeModel.SetScale(glm::vec3(0.2f));
 		cubeModel.SetUniforms(cubeShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
 		cubeModel.DrawArraysTrianglesInstanced(boxObjMats, cubeShader);
-		//cubeModel.DrawArraysTriangles();
 		// ======
-
 		// == FLOOR ==
 		floorShader.UseProgram();
 		floorModel.BindVertex();
-
 		floorShader.ActivateTexture();
-
 		floorModel.SetScale(glm::vec3(0.4f));
 		floorModel.SetUniforms(floorShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
 		floorModel.DrawArraysTriangles();
 		// ======
-
-
 		// == CAMARO ==
 		glEnable(GL_STENCIL_TEST);
 		glStencilFunc(GL_ALWAYS, 1, 0xff);
 		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 		glStencilMask(0xff);
-
 		glDisable(GL_CULL_FACE); // Disable it to draw even if normal is pointing outwards
 		camaroShader.UseProgram();
 		camaroModel.BindVertex();
-
 		camaroShader.ActivateTexture();
-
 		prevCamaroPos = camaroModel.GetLocation();
 		currCamaroPos = glm::vec3(glm::sin(time) * 30.f, 0.f, glm::cos(time) * 30.f);
-
 		// Change position (transalte)
 		camaroModel.SetLocation(currCamaroPos);
 		camaroForwardVec = glm::normalize(currCamaroPos - prevCamaroPos);
-
 		// Change y-rotation (rotate)
 		camaroModel.SetRoatationAngle(time + 90.f);
 		camaroModel.SetRotation(glm::vec3(0.f, glm::degrees(camaroModel.GetRotationAngle()), 0.f));
-
 		// Change size (scale)
 		camaroModel.SetScale(glm::vec3(0.05f));
-
 		camaroModel.SetUniforms(camaroShader, RenderVars::_modelView, RenderVars::_MVP, glm::vec4(5.f, 5.f, 5.f, 0.8f));
-
 		camaroObjMats[0] = camaroModel.GetModelMatrix();
 		for (int i = 1; i < camaroObjMats.size(); i++)
 		{
@@ -371,57 +374,51 @@ namespace Object
 				* glm::scale(glm::mat4(), glm::vec3(0.05f));
 		}
 		camaroModel.DrawArraysTrianglesInstanced(camaroObjMats, camaroShader);
-		//camaroModel.DrawArraysTriangles();
 		glEnable(GL_CULL_FACE);
 		// ======
-
-
 		// == MIRROR ==
-		//mirrorPlaneShader.GenerateFramebufferTexture();
-		//DrawCubeFBOTex(fragColor, time);
-
 		mirrorPlaneShader.UseProgram();
 		mirrorPlaneModel.BindVertex();
-
-		mirrorPlaneShader.ActivateTexture();
-
+		mirrorPlaneShader.ActivateTexture(Framebuffer::fbo_tex);
 		mirrorPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.f, 4.f, 0.f));
 		mirrorPlaneModel.SetRoatationAngle(time + 0.5f);
 		mirrorPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
 		mirrorPlaneModel.SetScale(glm::vec3(0.05f));
-
 		mirrorPlaneModel.SetUniforms(mirrorPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor);
-
 		mirrorPlaneModel.DrawArraysTriangles();
 		// ======
-
-
 		// == WINDOW ==
 		// Alpha blending
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		if (!inFreeCam)
 		{
 			glStencilFunc(GL_GREATER, 1, 0xff);
 			glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
 			windowPlaneShader.UseProgram();
 			windowPlaneModel.BindVertex();
-
 			windowPlaneShader.ActivateTexture();
-
 			windowPlaneModel.SetLocation(camaroModel.GetLocation() + glm::vec3(0.01f, 4.f, 0.01f));
 			windowPlaneModel.SetRoatationAngle(time + 0.5f);
 			windowPlaneModel.SetRotation(glm::vec3(0.f, glm::degrees(mirrorPlaneModel.GetRotationAngle()), 0.f));
 			windowPlaneModel.SetScale(glm::vec3(0.1f, 0.1f, 0.4f));
 			windowPlaneModel.SetUniforms(windowPlaneShader, RenderVars::_modelView, RenderVars::_MVP, fragColor, windowAlpha);
-
 			windowPlaneModel.DrawArraysTriangles();
 		}
-
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
+		// ======
+	}
+
+	void render()
+	{
+		glm::vec4 fragColor;
+		fragColor = glm::vec4(0.5f, 0.5f, 0.5f, 0.5f);
+		float time = ImGui::GetTime();
+
+		// == MIRROR ==
+		mirrorPlaneShader.GenerateFramebufferTexture();
+		DrawCubeFBOTex(fragColor, time);
 		// ======
 
 		glBindVertexArray(0);
@@ -583,7 +580,7 @@ void GLrender(float dt)
 		RV::_modelView = glm::rotate(RV::_modelView, glm::radians(-Object::camaroModel.GetRotation().y + 180.f), glm::vec3(0.f, 1.f, 0.f));
 		//RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
-		glm::vec3 camaroCameraPos{ Object::camaroModel.GetLocation() + (Object::camaroForwardVec * -1.5f) + glm::vec3(0.f, 7.f, 0.f) };
+		camaroCameraPos = { Object::camaroModel.GetLocation() + (Object::camaroForwardVec * -1.5f) + glm::vec3(0.f, 7.f, 0.f) };
 		RV::_modelView = glm::translate(RV::_modelView, -camaroCameraPos);
 	}
 	
@@ -615,12 +612,4 @@ void GUI()
 	}
 
 	ImGui::End();
-
-	// Example code -- ImGui test window. Most of the sample code is in ImGui::ShowTestWindow()
-	bool show_test_window = false;
-	if (show_test_window) 
-	{
-		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-		ImGui::ShowTestWindow(&show_test_window);
-	}
 }

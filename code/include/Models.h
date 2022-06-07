@@ -41,6 +41,7 @@ public:
 	glm::vec3 GetRotation();
 	float GetRotationAngle();
 	glm::mat4 GetModelMatrix();
+	glm::vec3 GetObjNormal(int id);
 
 private:
 	GLuint VAO;

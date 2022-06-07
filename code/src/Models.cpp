@@ -154,3 +154,8 @@ glm::mat4 Model::GetModelMatrix()
 {
 	return objMat;
 }
+
+glm::vec3 Model::GetObjNormal(int id)
+{
+	return objNormals[id];
+}

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <glm\gtc\type_ptr.hpp>
 #include <glm\gtc\matrix_transform.hpp>
+#include <vector>
 
 //#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -15,13 +16,13 @@ class Shader
 {
 public:
 	Shader(std::string vertexShaderPath, std::string fragmentShaderPath, std::string geometryShaderPath, char* texturePath, bool fliped);
+	Shader(std::string vertexShaderPath, std::string fragmentShaderPath, std::string geometryShaderPath, char* texturePath, bool fliped, std::vector<std::string> faces);
 	Shader(std::string vertexShaderPath, std::string fragmentShaderPath, char* texturePath, bool fliped);
 	~Shader();
 
 	std::string GetShaderFromPath(std::string fragmentPath);
 
 	void CreateAllShaders();
-	void CreateTwoShaders();
 	void UseProgram();
 	void DeleteProgram();
 	GLuint GetProgram();
@@ -33,7 +34,7 @@ public:
 	void ActivateTexture(int newTex);
 
 	void GenerateFramebufferTexture();
-	void GenerateFramebufferCubemapTexture();
+	GLuint LoadCubemap(std::vector<std::string> faces);
 
 	GLuint GetUniformLocation(const char* uniformName);
 	void SetUniformInt(char* uniformName, int value);
